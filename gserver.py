@@ -34,18 +34,24 @@ class Game:
     def run(self):
         while not self.gameFinished.isSet():
           self.frame()
-          self.sendGamePacket(("NewFrame", None), playerId = -1)
+          self.sendGamePacket(("NewFrame", None), srcPlayerId = -1)
           self.gameFinished.wait(0.016667)
             
     def stop(self):
         self.gameFinished.set()
         print "Game ended:", self.gameName
     
-    def sendGamePacket(self, packet, playerId = None):
-        playerId = self.clients[hnet.getClientId()]
+    def sendGamePacket(self, packet, srcPlayerId = None, dstPlayerId = None):
+        if srcPlayerId == None:
+          srcPlayerId = self.clients[hnet.getClientId()]
         with self.frame.lock: # we don't want the server to send out the frame end packet before another packet in that frame
-            for clientId, handler, _ in self.players.values():
-                handler.send((playerId, self.frame.value, packet))
+            if dstPlayerId == None:        
+              for clientId, handler, _ in self.players.values():
+                handler.send((srcPlayerId, self.frame.value, packet))
+            else:
+              clientId, handler, _ = self.players[dstPlayerId]
+              handler.send((srcPlayerId, self.frame.value, packet))
+
     
     @threadSafe
     def newPlayer(self, playerData):
@@ -97,8 +103,8 @@ class GameManager:
       if not self.games[gameName].players:
         del self.games[gameName]
       
-  def sendGamePacket(self, gameName, packet):
-      return self.games[gameName].sendGamePacket(packet)
+  def sendGamePacket(self, gameName, packet, dstPlayerId = None):
+      return self.games[gameName].sendGamePacket(packet, dstPlayerId = dstPlayerId)
       
 class Server(hnet.HNetTCPServer):
     def onInit(self):
