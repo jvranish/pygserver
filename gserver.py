@@ -126,7 +126,7 @@ class ServerHandler(hnet.HNetHandler):
             f()
 
 def startServer():
-    with Server([('', 30131)], ServerHandler) as s:
+    with Server([('', 6112)], ServerHandler) as s:
         try:
             while not s.done.isSet():
                 s.done.wait(0.01)
